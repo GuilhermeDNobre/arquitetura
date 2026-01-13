@@ -55,7 +55,9 @@ export default function Dashboard() {
     id: '',
     departurePoint: '',
     destination: '',
+    departureDate: '',
     departureTime: '',
+    arrivalDate: '',
     arrivalTime: '',
     company: ''
   });
@@ -235,21 +237,41 @@ export default function Dashboard() {
     setLoading(true);
 
     try {
+      const departureFull = `${flightForm.departureDate}T${flightForm.departureTime}`;
+      const arrivalFull = `${flightForm.arrivalDate}T${flightForm.arrivalTime}`;
+
       const response = await fetch('http://localhost:3000/flights', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         mode: 'cors',
-        body: JSON.stringify(flightForm),
+        body: JSON.stringify({
+          id: flightForm.id,
+          departurePoint: flightForm.departurePoint,
+          destination: flightForm.destination,
+          departureTime: new Date(departureFull),
+          arrivalTime: new Date(arrivalFull),
+          company: flightForm.company,
+        }),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      setFlightForm({ id: '', departurePoint: '', destination: '', departureTime: '', arrivalTime: '', company: '' });
+      await response.json();
+      setFlightForm({
+        id: '',
+        departurePoint: '',
+        destination: '',
+        departureDate: '',
+        departureTime: '',
+        arrivalDate: '',
+        arrivalTime: '',
+        company: ''
+      });
+      loadFlights();
       alert('Voo criado com sucesso!');
     } catch (error) {
       console.error('Error creating flight:', error);
@@ -436,26 +458,44 @@ export default function Dashboard() {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Partida</label>
-                  <input
-                    type="datetime-local"
-                    value={flightForm.departureTime}
-                    onChange={(e) => setFlightForm({ ...flightForm, departureTime: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    required
-                  />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Partida</label>
+                  <div className="space-y-1">
+                    <input
+                      type="date"
+                      value={flightForm.departureDate}
+                      onChange={(e) => setFlightForm({ ...flightForm, departureDate: e.target.value })}
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                      required
+                    />
+                    <input
+                      type="time"
+                      value={flightForm.departureTime}
+                      onChange={(e) => setFlightForm({ ...flightForm, departureTime: e.target.value })}
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                      required
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Chegada</label>
-                  <input
-                    type="datetime-local"
-                    value={flightForm.arrivalTime}
-                    onChange={(e) => setFlightForm({ ...flightForm, arrivalTime: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                    required
-                  />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Chegada</label>
+                  <div className="space-y-1">
+                    <input
+                      type="date"
+                      value={flightForm.arrivalDate}
+                      onChange={(e) => setFlightForm({ ...flightForm, arrivalDate: e.target.value })}
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                      required
+                    />
+                    <input
+                      type="time"
+                      value={flightForm.arrivalTime}
+                      onChange={(e) => setFlightForm({ ...flightForm, arrivalTime: e.target.value })}
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -582,10 +622,10 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-        </div>
+        </div >
 
         {/* Notifications Section */}
-        <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        < div className="mt-8 bg-white border border-gray-200 rounded-lg p-6 shadow-sm" >
           <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
             <span className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
               📢
@@ -643,12 +683,12 @@ export default function Dashboard() {
               ))
             )}
           </div>
-        </div>
+        </div >
 
         {/* Flight Status Section */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        < div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6" >
           {/* Active Flights */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+          < div className="bg-green-50 border border-green-200 rounded-lg p-6" >
             <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center">
               <span className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
                 ✈️
@@ -670,10 +710,10 @@ export default function Dashboard() {
                 ))
               )}
             </div>
-          </div>
+          </div >
 
           {/* Impeded Flights */}
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          < div className="bg-red-50 border border-red-200 rounded-lg p-6" >
             <h3 className="text-lg font-semibold text-red-800 mb-4 flex items-center">
               <span className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
                 🚫
@@ -695,10 +735,10 @@ export default function Dashboard() {
                 ))
               )}
             </div>
-          </div>
+          </div >
 
           {/* Redirected Flights */}
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
+          < div className="bg-purple-50 border border-purple-200 rounded-lg p-6" >
             <h3 className="text-lg font-semibold text-purple-800 mb-4 flex items-center">
               <span className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
                 🔄
@@ -722,11 +762,11 @@ export default function Dashboard() {
                 ))
               )}
             </div>
-          </div>
-        </div>
+          </div >
+        </div >
 
         {/* Status Section */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+        < div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6" >
           <h3 className="text-lg font-semibold text-blue-800 mb-4">📊 Status do Sistema</h3>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="bg-white p-4 rounded-lg border border-blue-200">
@@ -750,8 +790,8 @@ export default function Dashboard() {
               <div className="text-sm text-gray-600">Polling (30s)</div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        </div >
+      </div >
+    </div >
   );
 }
