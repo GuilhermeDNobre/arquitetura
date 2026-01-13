@@ -1,28 +1,43 @@
 // src/events/events.gateway.ts
 
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { OnModuleInit } from '@nestjs/common';
 import { EventBusService } from '../event-bus/event-bus.service';
 import { NotificationSent } from '../events/events';
 
-@Injectable()
-export class EventsGateway implements OnModuleInit {
-  private clients: Set<any> = new Set();
+@WebSocketGateway({
+  cors: {
+    origin: '*',
+  },
+})
+export class EventsGateway implements OnModuleInit, OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer()
+  server: Server;
 
-  constructor(private readonly eventBus: EventBusService) {}
+  constructor(private readonly eventBus: EventBusService) { }
 
   onModuleInit() {
-    // Only listen to notification events for now
     this.eventBus.subscribe(NotificationSent.name, (event: NotificationSent) => {
-      console.log('Event received:', event.constructor.name);
-      // Simple logging only - no broadcasting for now
+      console.log('Broadcasting notification:', event.message);
+      this.server.emit('notification', {
+        ...event,
+        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date(),
+      });
     });
   }
 
-  addClient(client: any) {
-    this.clients.add(client);
+  handleConnection(client: Socket) {
+    console.log(`Client connected: ${client.id}`);
   }
 
-  removeClient(client: any) {
-    this.clients.delete(client);
+  handleDisconnect(client: Socket) {
+    console.log(`Client disconnected: ${client.id}`);
   }
 }

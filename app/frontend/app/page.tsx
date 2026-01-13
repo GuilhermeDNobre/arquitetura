@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 
 interface Airport {
   code: string;
@@ -75,14 +76,32 @@ export default function Dashboard() {
     loadNotifications();
     loadSpecialFlights();
 
-    // Refresh data every 30 seconds
+    // Socket.io integration
+    const socket = io('http://localhost:3000');
+
+    socket.on('connect', () => {
+      console.log('Connected to WebSocket server');
+    });
+
+    socket.on('notification', (data) => {
+      console.log('Real-time notification received:', data);
+      // Immediate refresh of relevant data
+      loadNotifications();
+      loadFlights();
+      loadSpecialFlights();
+    });
+
+    // Keep polling as a fallback, but at a lower frequency (60s)
     const interval = setInterval(() => {
       loadFlights();
       loadNotifications();
       loadSpecialFlights();
-    }, 30000);
+    }, 60000);
 
-    return () => clearInterval(interval);
+    return () => {
+      socket.disconnect();
+      clearInterval(interval);
+    };
   }, []);
 
   const loadAirports = async () => {
@@ -295,7 +314,7 @@ export default function Dashboard() {
                 <input
                   type="text"
                   value={airportForm.code}
-                  onChange={(e) => setAirportForm({...airportForm, code: e.target.value.toUpperCase()})}
+                  onChange={(e) => setAirportForm({ ...airportForm, code: e.target.value.toUpperCase() })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   placeholder="JFK"
                   required
@@ -307,7 +326,7 @@ export default function Dashboard() {
                 <input
                   type="text"
                   value={airportForm.name}
-                  onChange={(e) => setAirportForm({...airportForm, name: e.target.value})}
+                  onChange={(e) => setAirportForm({ ...airportForm, name: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   placeholder="John F. Kennedy International"
                   required
@@ -320,7 +339,7 @@ export default function Dashboard() {
                   <input
                     type="text"
                     value={airportForm.city}
-                    onChange={(e) => setAirportForm({...airportForm, city: e.target.value})}
+                    onChange={(e) => setAirportForm({ ...airportForm, city: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     placeholder="New York"
                     required
@@ -332,7 +351,7 @@ export default function Dashboard() {
                   <input
                     type="text"
                     value={airportForm.country}
-                    onChange={(e) => setAirportForm({...airportForm, country: e.target.value})}
+                    onChange={(e) => setAirportForm({ ...airportForm, country: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     placeholder="USA"
                     required
@@ -377,7 +396,7 @@ export default function Dashboard() {
                 <input
                   type="text"
                   value={flightForm.id}
-                  onChange={(e) => setFlightForm({...flightForm, id: e.target.value})}
+                  onChange={(e) => setFlightForm({ ...flightForm, id: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   placeholder="FL123"
                   required
@@ -389,7 +408,7 @@ export default function Dashboard() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Origem</label>
                   <select
                     value={flightForm.departurePoint}
-                    onChange={(e) => setFlightForm({...flightForm, departurePoint: e.target.value})}
+                    onChange={(e) => setFlightForm({ ...flightForm, departurePoint: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     required
                   >
@@ -404,7 +423,7 @@ export default function Dashboard() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Destino</label>
                   <select
                     value={flightForm.destination}
-                    onChange={(e) => setFlightForm({...flightForm, destination: e.target.value})}
+                    onChange={(e) => setFlightForm({ ...flightForm, destination: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     required
                   >
@@ -422,7 +441,7 @@ export default function Dashboard() {
                   <input
                     type="datetime-local"
                     value={flightForm.departureTime}
-                    onChange={(e) => setFlightForm({...flightForm, departureTime: e.target.value})}
+                    onChange={(e) => setFlightForm({ ...flightForm, departureTime: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     required
                   />
@@ -433,7 +452,7 @@ export default function Dashboard() {
                   <input
                     type="datetime-local"
                     value={flightForm.arrivalTime}
-                    onChange={(e) => setFlightForm({...flightForm, arrivalTime: e.target.value})}
+                    onChange={(e) => setFlightForm({ ...flightForm, arrivalTime: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                     required
                   />
@@ -445,7 +464,7 @@ export default function Dashboard() {
                 <input
                   type="text"
                   value={flightForm.company}
-                  onChange={(e) => setFlightForm({...flightForm, company: e.target.value})}
+                  onChange={(e) => setFlightForm({ ...flightForm, company: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   placeholder="Airlines Inc"
                   required
@@ -476,7 +495,7 @@ export default function Dashboard() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Aeroporto</label>
                 <select
                   value={weatherForm.airportCode}
-                  onChange={(e) => setWeatherForm({...weatherForm, airportCode: e.target.value})}
+                  onChange={(e) => setWeatherForm({ ...weatherForm, airportCode: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   required
                 >
@@ -491,7 +510,7 @@ export default function Dashboard() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Impacto</label>
                 <select
                   value={weatherForm.impactType}
-                  onChange={(e) => setWeatherForm({...weatherForm, impactType: e.target.value})}
+                  onChange={(e) => setWeatherForm({ ...weatherForm, impactType: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 >
                   <option value="storm">Tempestade</option>
@@ -508,7 +527,7 @@ export default function Dashboard() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Severidade</label>
                 <select
                   value={weatherForm.severity}
-                  onChange={(e) => setWeatherForm({...weatherForm, severity: e.target.value})}
+                  onChange={(e) => setWeatherForm({ ...weatherForm, severity: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                 >
                   <option value="low">Baixa</option>
@@ -523,7 +542,7 @@ export default function Dashboard() {
                 <input
                   type="number"
                   value={weatherForm.durationMinutes}
-                  onChange={(e) => setWeatherForm({...weatherForm, durationMinutes: e.target.value})}
+                  onChange={(e) => setWeatherForm({ ...weatherForm, durationMinutes: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                   min="1"
                   required
@@ -535,7 +554,7 @@ export default function Dashboard() {
                   type="checkbox"
                   id="isCatastrophe"
                   checked={weatherForm.isCatastrophe}
-                  onChange={(e) => setWeatherForm({...weatherForm, isCatastrophe: e.target.checked})}
+                  onChange={(e) => setWeatherForm({ ...weatherForm, isCatastrophe: e.target.checked })}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
                 <label htmlFor="isCatastrophe" className="ml-2 text-sm text-gray-700">
@@ -585,28 +604,26 @@ export default function Dashboard() {
               notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-3 rounded-lg border-l-4 ${
-                    notification.type === 'delay'
-                      ? 'border-l-yellow-500 bg-yellow-50'
-                      : notification.type === 'impediment'
+                  className={`p-3 rounded-lg border-l-4 ${notification.type === 'delay'
+                    ? 'border-l-yellow-500 bg-yellow-50'
+                    : notification.type === 'impediment'
                       ? 'border-l-red-500 bg-red-50'
                       : notification.type === 'redirection'
-                      ? 'border-l-purple-500 bg-purple-50'
-                      : 'border-l-blue-500 bg-blue-50'
-                  }`}
+                        ? 'border-l-purple-500 bg-purple-50'
+                        : 'border-l-blue-500 bg-blue-50'
+                    }`}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-medium px-2 py-1 rounded ${
-                          notification.type === 'delay'
-                            ? 'bg-yellow-200 text-yellow-800'
-                            : notification.type === 'impediment'
+                        <span className={`text-xs font-medium px-2 py-1 rounded ${notification.type === 'delay'
+                          ? 'bg-yellow-200 text-yellow-800'
+                          : notification.type === 'impediment'
                             ? 'bg-red-200 text-red-800'
                             : notification.type === 'redirection'
-                            ? 'bg-purple-200 text-purple-800'
-                            : 'bg-blue-200 text-blue-800'
-                        }`}>
+                              ? 'bg-purple-200 text-purple-800'
+                              : 'bg-blue-200 text-blue-800'
+                          }`}>
                           {notification.type === 'delay' && '⏰ DELAY'}
                           {notification.type === 'impediment' && '🚫 IMPEDIMENTO'}
                           {notification.type === 'redirection' && '🔄 REDIRECIONAMENTO'}
