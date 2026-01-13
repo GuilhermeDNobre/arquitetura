@@ -5,12 +5,12 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class EventBusService {
-  constructor(private readonly eventEmitter: EventEmitter2) {}
+  constructor(private readonly eventEmitter: EventEmitter2) { }
 
-  publish(event: { constructor: { name: string } }): void {
+  async publish(event: { constructor: { name: string } }): Promise<void> {
     const eventName = event.constructor.name;
     console.log(`Publishing event: ${eventName}`, event);
-    this.eventEmitter.emit(eventName, event);
+    await this.eventEmitter.emitAsync(eventName, event);
   }
 
   subscribe(eventName: string, handler: (event: any) => void): void {

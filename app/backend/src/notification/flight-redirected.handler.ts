@@ -10,12 +10,12 @@ export class FlightRedirectedHandler implements OnModuleInit {
   constructor(
     private readonly eventBus: EventBusService,
     private readonly notificationService: NotificationService,
-  ) {}
+  ) { }
 
   onModuleInit() {
-    this.eventBus.subscribe(FlightRedirected.name, (event: FlightRedirected) => {
+    this.eventBus.subscribe(FlightRedirected.name, async (event: FlightRedirected) => {
       console.log(`Notification Orchestrator received: ${event.constructor.name}`, event);
-      this.notificationService.notifyFlightRedirected(
+      await this.notificationService.notifyFlightRedirected(
         event.flightId,
         event.originalDestination,
         event.newDestination,

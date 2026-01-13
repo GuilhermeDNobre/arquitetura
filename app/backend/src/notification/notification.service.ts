@@ -6,40 +6,46 @@ import { NotificationSent } from '../events/events';
 
 @Injectable()
 export class NotificationService {
-  constructor(private readonly eventBus: EventBusService) {}
+  constructor(private readonly eventBus: EventBusService) { }
 
-  notifyDelay(flightId: string, delayMinutes: number, reason: string): void {
+  async notifyDelay(flightId: string, delayMinutes: number, reason: string): Promise<void> {
     const recipients = ['company', 'cco', 'operator'];
     const message = `Flight ${flightId} delayed by ${delayMinutes} minutes due to ${reason}`;
 
-    recipients.forEach((recipient) => {
-      const event = new NotificationSent(recipient, message);
-      this.eventBus.publish(event);
-    });
+    await Promise.all(
+      recipients.map((recipient) => {
+        const event = new NotificationSent(recipient, message);
+        return this.eventBus.publish(event);
+      }),
+    );
   }
 
-  notifyImpededFlight(flightId: string, reason: string, newDepartureTime: Date): void {
+  async notifyImpededFlight(flightId: string, reason: string, newDepartureTime: Date): Promise<void> {
     const recipients = ['company', 'cco', 'operator', 'authority'];
     const message = `Flight ${flightId} is impeded due to ${reason}. New departure time: ${newDepartureTime.toISOString()}`;
 
-    recipients.forEach((recipient) => {
-      const event = new NotificationSent(recipient, message);
-      this.eventBus.publish(event);
-    });
+    await Promise.all(
+      recipients.map((recipient) => {
+        const event = new NotificationSent(recipient, message);
+        return this.eventBus.publish(event);
+      }),
+    );
   }
 
-  notifyFlightRedirected(
+  async notifyFlightRedirected(
     flightId: string,
     originalDestination: string,
     newDestination: string,
     reason: string,
-  ): void {
+  ): Promise<void> {
     const recipients = ['company', 'cco', 'operator', 'authority', 'passengers'];
     const message = `EMERGENCY: Flight ${flightId} redirected from ${originalDestination} to ${newDestination} due to ${reason}. Passengers will be informed of new arrival procedures.`;
 
-    recipients.forEach((recipient) => {
-      const event = new NotificationSent(recipient, message);
-      this.eventBus.publish(event);
-    });
+    await Promise.all(
+      recipients.map((recipient) => {
+        const event = new NotificationSent(recipient, message);
+        return this.eventBus.publish(event);
+      }),
+    );
   }
 }

@@ -6,11 +6,11 @@ import { CreateAirportDto } from './create-airport.dto';
 
 @Controller('airports')
 export class AirportController {
-  constructor(private readonly airportService: AirportService) {}
+  constructor(private readonly airportService: AirportService) { }
 
   @Post()
-  createAirport(@Body() createAirportDto: CreateAirportDto) {
-    const airport = this.airportService.createAirport(
+  async createAirport(@Body() createAirportDto: CreateAirportDto) {
+    const airport = await this.airportService.createAirport(
       createAirportDto.code,
       createAirportDto.name,
       createAirportDto.city,
@@ -22,14 +22,14 @@ export class AirportController {
   }
 
   @Get()
-  getAllAirports() {
-    const airports = this.airportService.getAllAirports();
+  async getAllAirports() {
+    const airports = await this.airportService.getAllAirports();
     return { airports };
   }
 
   @Get(':code')
-  getAirportByCode(@Param('code') code: string) {
-    const airport = this.airportService.getAirportByCode(code);
+  async getAirportByCode(@Param('code') code: string) {
+    const airport = await this.airportService.getAirportByCode(code);
     if (!airport) {
       return { error: 'Airport not found' };
     }
@@ -37,8 +37,8 @@ export class AirportController {
   }
 
   @Get(':code/flights')
-  getFlightsByAirport(@Param('code') code: string) {
-    const flights = this.airportService.getFlightsByAirport(code);
+  async getFlightsByAirport(@Param('code') code: string) {
+    const flights = await this.airportService.getFlightsByAirport(code);
     return { airport: code, flights };
   }
 }

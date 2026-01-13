@@ -4,10 +4,10 @@ import { WeatherImpactDetected } from './events/events';
 
 @Controller()
 export class AppController {
-  constructor(private readonly eventBus: EventBusService) {}
+  constructor(private readonly eventBus: EventBusService) { }
 
   @Post('simulate-weather-impact')
-  simulateWeatherImpact(
+  async simulateWeatherImpact(
     @Body()
     body: {
       airportCode: string;
@@ -24,7 +24,7 @@ export class AppController {
       body.durationMinutes,
       body.isCatastrophe || body.severity === 'catastrophic',
     );
-    this.eventBus.publish(event);
+    await this.eventBus.publish(event);
     return { message: 'Weather impact simulated' };
   }
 }

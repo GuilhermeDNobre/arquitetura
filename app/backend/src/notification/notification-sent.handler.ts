@@ -3,6 +3,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { EventBusService } from '../event-bus/event-bus.service';
 import { NotificationSent } from '../events/events';
+import { PrismaService } from '../prisma/prisma.service';
 
 export interface StoredNotification {
   id: string;
@@ -14,28 +15,24 @@ export interface StoredNotification {
 
 @Injectable()
 export class NotificationSentHandler implements OnModuleInit {
-  private notifications: StoredNotification[] = [];
-
-  constructor(private readonly eventBus: EventBusService) {}
+  constructor(
+    private readonly eventBus: EventBusService,
+    private readonly prisma: PrismaService,
+  ) { }
 
   onModuleInit() {
     this.eventBus.subscribe(
       NotificationSent.name,
-      (event: NotificationSent) => {
-        const notification: StoredNotification = {
-          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          recipient: event.recipient,
-          message: event.message,
-          timestamp: new Date(),
-          type: this.determineNotificationType(event.message),
-        };
+      async (event: NotificationSent) => {
+        const type = this.determineNotificationType(event.message);
 
-        this.notifications.unshift(notification); // Add to beginning of array
-
-        // Keep only last 100 notifications
-        if (this.notifications.length > 100) {
-          this.notifications = this.notifications.slice(0, 100);
-        }
+        await this.prisma.notification.create({
+          data: {
+            recipient: event.recipient,
+            message: event.message,
+            type,
+          },
+        });
 
         console.log(
           `Notification sent to ${event.recipient}: ${event.message}`,
@@ -44,22 +41,31 @@ export class NotificationSentHandler implements OnModuleInit {
     );
   }
 
-  private determineNotificationType(message: string): StoredNotification['type'] {
+  private determineNotificationType(message: string): string {
     if (message.includes('delayed')) return 'delay';
     if (message.includes('impeded')) return 'impediment';
     if (message.includes('redirected') || message.includes('EMERGENCY')) return 'redirection';
     return 'general';
   }
 
-  getAllNotifications(): StoredNotification[] {
-    return [...this.notifications];
+  async getAllNotifications(): Promise<any[]> {
+    return this.prisma.notification.findMany({
+      orderBy: { timestamp: 'desc' },
+      take: 100,
+    });
   }
 
-  getNotificationsByType(type: StoredNotification['type']): StoredNotification[] {
-    return this.notifications.filter(n => n.type === type);
+  async getNotificationsByType(type: string): Promise<any[]> {
+    return this.prisma.notification.findMany({
+      where: { type },
+      orderBy: { timestamp: 'desc' },
+    });
   }
 
-  getNotificationsByRecipient(recipient: string): StoredNotification[] {
-    return this.notifications.filter(n => n.recipient === recipient);
+  async getNotificationsByRecipient(recipient: string): Promise<any[]> {
+    return this.prisma.notification.findMany({
+      where: { recipient },
+      orderBy: { timestamp: 'desc' },
+    });
   }
 }

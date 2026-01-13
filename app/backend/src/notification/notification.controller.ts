@@ -5,23 +5,23 @@ import { NotificationSentHandler, StoredNotification } from './notification-sent
 
 @Controller('notifications')
 export class NotificationController {
-  constructor(private readonly notificationHandler: NotificationSentHandler) {}
+  constructor(private readonly notificationHandler: NotificationSentHandler) { }
 
   @Get()
-  getAllNotifications(): { notifications: StoredNotification[] } {
-    const notifications = this.notificationHandler.getAllNotifications();
+  async getAllNotifications(): Promise<{ notifications: any[] }> {
+    const notifications = await this.notificationHandler.getAllNotifications();
     return { notifications };
   }
 
   @Get('by-type')
-  getNotificationsByType(@Query('type') type: StoredNotification['type']): { notifications: StoredNotification[] } {
-    const notifications = this.notificationHandler.getNotificationsByType(type);
+  async getNotificationsByType(@Query('type') type: string): Promise<{ notifications: any[] }> {
+    const notifications = await this.notificationHandler.getNotificationsByType(type);
     return { notifications };
   }
 
   @Get('by-recipient')
-  getNotificationsByRecipient(@Query('recipient') recipient: string): { notifications: StoredNotification[] } {
-    const notifications = this.notificationHandler.getNotificationsByRecipient(recipient);
+  async getNotificationsByRecipient(@Query('recipient') recipient: string): Promise<{ notifications: any[] }> {
+    const notifications = await this.notificationHandler.getNotificationsByRecipient(recipient);
     return { notifications };
   }
 }

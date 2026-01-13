@@ -10,12 +10,12 @@ export class FlightImpededHandler implements OnModuleInit {
   constructor(
     private readonly eventBus: EventBusService,
     private readonly notificationService: NotificationService,
-  ) {}
+  ) { }
 
   onModuleInit() {
-    this.eventBus.subscribe(FlightImpeded.name, (event: FlightImpeded) => {
+    this.eventBus.subscribe(FlightImpeded.name, async (event: FlightImpeded) => {
       console.log(`Notification Orchestrator received: ${event.constructor.name}`, event);
-      this.notificationService.notifyImpededFlight(event.flightId, event.reason, event.newDepartureTime);
+      await this.notificationService.notifyImpededFlight(event.flightId, event.reason, event.newDepartureTime);
     });
   }
 }

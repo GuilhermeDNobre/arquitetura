@@ -3,51 +3,47 @@
 import { Injectable } from '@nestjs/common';
 import { EventBusService } from '../event-bus/event-bus.service';
 import { AirportService } from '../airport/airport.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { OperationalDelayDetected, FlightCreated, FlightImpeded, FlightRedirected } from '../events/events';
 
 @Injectable()
 export class FlightService {
-  private flights: any[] = [];
-
   constructor(
     private readonly eventBus: EventBusService,
     private readonly airportService: AirportService,
-  ) {}
+    private readonly prisma: PrismaService,
+  ) { }
 
-  createFlight(
+  async createFlight(
     id: string,
     departurePoint: string,
     destination: string,
     departureTime: Date,
     arrivalTime: Date,
     company: string,
-  ): void {
-    const flight = { id, departurePoint, destination, departureTime, arrivalTime, company };
-    this.flights.push(flight);
-
-    // Adicionar voo aos aeroportos de origem e destino
-    try {
-      this.airportService.addFlightToAirport(departurePoint, flight);
-    } catch (error) {
-      console.warn(`Warning: Could not add flight to departure airport ${departurePoint}:`, error.message);
-    }
-
-    try {
-      this.airportService.addFlightToAirport(destination, flight);
-    } catch (error) {
-      console.warn(`Warning: Could not add flight to destination airport ${destination}:`, error.message);
-    }
+  ): Promise<any> {
+    const flight = await this.prisma.flight.create({
+      data: {
+        id,
+        departurePoint,
+        destination,
+        departureTime: new Date(departureTime),
+        arrivalTime: new Date(arrivalTime),
+        company,
+      },
+    });
 
     const event = new FlightCreated(id, departurePoint, destination, departureTime, arrivalTime, company);
     this.eventBus.publish(event);
+
+    return flight;
   }
 
-  handleWeatherImpact(
+  async handleWeatherImpact(
     airportCode: string,
     impactType: string,
     severity: 'low' | 'medium' | 'high' | 'catastrophic',
-  ): void {
-    // Lógica simples: se severity high, delay de 60 min, etc.
+  ): Promise<void> {
     let delayMinutes = 0;
     if (severity === 'high') {
       delayMinutes = 60;
@@ -66,49 +62,54 @@ export class FlightService {
     }
   }
 
-  checkImpededFlights(
+  async checkImpededFlights(
     airportCode: string,
     impactType: string,
     severity: 'low' | 'medium' | 'high' | 'catastrophic',
     durationMinutes: number,
     impactTimestamp: Date,
     isCatastrophe: boolean = false,
-  ): void {
+  ): Promise<void> {
     const impactStart = new Date(impactTimestamp);
     const impactEnd = new Date(impactStart.getTime() + durationMinutes * 60000);
 
-    for (const flight of this.flights) {
-      if (flight.departurePoint === airportCode || flight.destination === airportCode) {
-        const flightStart = new Date(flight.departureTime);
-        const flightEnd = new Date(flight.arrivalTime);
-        const now = new Date();
+    const flights = await this.prisma.flight.findMany({
+      where: {
+        OR: [{ departurePoint: airportCode }, { destination: airportCode }],
+      },
+    });
 
-        // Verificar se o voo está em andamento (já decolou mas ainda não pousou)
-        const isInFlight = now >= flightStart && now <= flightEnd;
+    for (const flight of flights) {
+      const flightStart = new Date(flight.departureTime);
+      const flightEnd = new Date(flight.arrivalTime);
+      const now = new Date();
 
-        // Verificar sobreposição de períodos
-        if (flightStart < impactEnd && flightEnd > impactStart) {
-          if (isCatastrophe && isInFlight && flight.destination === airportCode) {
-            // Voo em andamento afetado por catástrofe - redirecionar
-            this.redirectFlight(flight, airportCode, impactType);
-          } else {
-            // Voo impedido (não decolou ainda) ou delay operacional
-            const newDepartureTime = new Date(flightStart.getTime() + 2 * 60 * 60 * 1000);
-            const event = new FlightImpeded(
-              flight.id,
-              `Weather impact: ${impactType} at ${airportCode}`,
-              newDepartureTime,
-            );
-            this.eventBus.publish(event);
-          }
+      const isInFlight = now >= flightStart && now <= flightEnd;
+
+      if (flightStart < impactEnd && flightEnd > impactStart) {
+        if (isCatastrophe && isInFlight && flight.destination === airportCode) {
+          await this.redirectFlight(flight, airportCode, impactType);
+        } else {
+          const newDepartureTime = new Date(flightStart.getTime() + 2 * 60 * 60 * 1000);
+
+          await this.prisma.flight.update({
+            where: { id: flight.id },
+            data: { impeded: true },
+          });
+
+          const event = new FlightImpeded(
+            flight.id,
+            `Weather impact: ${impactType} at ${airportCode}`,
+            newDepartureTime,
+          );
+          this.eventBus.publish(event);
         }
       }
     }
   }
 
-  private redirectFlight(flight: any, affectedAirport: string, impactType: string): void {
-    // Encontrar aeroporto alternativo disponível
-    const alternativeAirport = this.findAlternativeAirport(affectedAirport);
+  private async redirectFlight(flight: any, affectedAirport: string, impactType: string): Promise<void> {
+    const alternativeAirport = await this.findAlternativeAirport(affectedAirport);
 
     if (alternativeAirport) {
       const event = new FlightRedirected(
@@ -119,44 +120,44 @@ export class FlightService {
       );
       this.eventBus.publish(event);
 
-      // Atualizar o voo com novo destino
-      flight.destination = alternativeAirport.code;
-      flight.redirected = true;
-      flight.redirectionReason = `Catastrophic ${impactType} at ${affectedAirport}`;
-    } else {
-      // Sem aeroporto alternativo - forçar pouso de emergência ou algo similar
-      console.warn(`No alternative airport found for flight ${flight.id} affected by ${impactType} at ${affectedAirport}`);
+      await this.prisma.flight.update({
+        where: { id: flight.id },
+        data: {
+          destination: alternativeAirport.code,
+          redirected: true,
+          redirectionReason: `Catastrophic ${impactType} at ${affectedAirport}`,
+        },
+      });
     }
   }
 
-  private findAlternativeAirport(affectedAirportCode: string): any {
-    // Lógica simples: encontrar aeroporto mais próximo que não seja o afetado
-    // Em produção, usaria cálculo de distância baseado em coordenadas
-    const availableAirports = Array.from(this.airportService.getAllAirports().values())
-      .filter(airport => airport.code !== affectedAirportCode);
+  private async findAlternativeAirport(affectedAirportCode: string): Promise<any> {
+    const availableAirports = await this.prisma.airport.findMany({
+      where: { NOT: { code: affectedAirportCode } },
+    });
 
-    // Retornar o primeiro aeroporto disponível (lógica pode ser melhorada)
     return availableAirports.length > 0 ? availableAirports[0] : null;
   }
 
-  getAllFlights(): any[] {
-    return [...this.flights];
+  async getAllFlights(): Promise<any[]> {
+    return this.prisma.flight.findMany();
   }
 
-  getImpededFlights(): any[] {
-    return this.flights.filter(flight => flight.impeded);
+  async getImpededFlights(): Promise<any[]> {
+    return this.prisma.flight.findMany({ where: { impeded: true } });
   }
 
-  getRedirectedFlights(): any[] {
-    return this.flights.filter(flight => flight.redirected);
+  async getRedirectedFlights(): Promise<any[]> {
+    return this.prisma.flight.findMany({ where: { redirected: true } });
   }
 
-  getActiveFlights(): any[] {
+  async getActiveFlights(): Promise<any[]> {
     const now = new Date();
-    return this.flights.filter(flight => {
-      const departureTime = new Date(flight.departureTime);
-      const arrivalTime = new Date(flight.arrivalTime);
-      return now >= departureTime && now <= arrivalTime;
+    return this.prisma.flight.findMany({
+      where: {
+        departureTime: { lte: now },
+        arrivalTime: { gte: now },
+      },
     });
   }
 }

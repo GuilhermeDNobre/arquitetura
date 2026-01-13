@@ -1,0 +1,45 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Airport {
+  code      String   @id
+  name      String
+  city      String
+  country   String
+  latitude  Float?
+  longitude Float?
+  flightsDeparture Flight[] @relation("DepartureAirport")
+  flightsArrival   Flight[] @relation("ArrivalAirport")
+}
+
+model Flight {
+  id              String   @id
+  departurePoint  String
+  destination     String
+  departureTime   DateTime
+  arrivalTime     DateTime
+  company         String
+  impeded         Boolean  @default(false)
+  redirected      Boolean  @default(false)
+  redirectionReason String?
+
+  departureAirport Airport @relation("DepartureAirport", fields: [departurePoint], references: [code])
+  arrivalAirport   Airport @relation("ArrivalAirport", fields: [destination], references: [code])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  recipient String
+  message   String
+  timestamp DateTime @default(now())
+  type      String
+}

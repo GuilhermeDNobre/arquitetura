@@ -10,17 +10,17 @@ export class OperationalDelayHandler implements OnModuleInit {
   constructor(
     private readonly eventBus: EventBusService,
     private readonly notificationService: NotificationService,
-  ) {}
+  ) { }
 
   onModuleInit() {
     this.eventBus.subscribe(
       OperationalDelayDetected.name,
-      (event: OperationalDelayDetected) => {
+      async (event: OperationalDelayDetected) => {
         console.log(
           `Notification Orchestrator received: ${event.constructor.name}`,
           event,
         );
-        this.notificationService.notifyDelay(
+        await this.notificationService.notifyDelay(
           event.flightId,
           event.delayMinutes,
           event.reason,

@@ -5,9 +5,17 @@ import { FlightModule } from './flight/flight.module';
 import { NotificationModule } from './notification/notification.module';
 import { EventsModule } from './events/events.module';
 import { AppController } from './app.controller';
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
-  imports: [EventBusModule, AirportModule, FlightModule, NotificationModule, EventsModule],
+  imports: [
+    PrismaModule,
+    EventBusModule,
+    AirportModule,
+    FlightModule,
+    NotificationModule,
+    EventsModule,
+  ],
   controllers: [AppController],
 })
-export class AppModule {}
+export class AppModule { }

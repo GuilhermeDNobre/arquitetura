@@ -6,11 +6,11 @@ import { CreateFlightDto } from './create-flight.dto';
 
 @Controller('flights')
 export class FlightController {
-  constructor(private readonly flightService: FlightService) {}
+  constructor(private readonly flightService: FlightService) { }
 
   @Post()
-  createFlight(@Body() createFlightDto: CreateFlightDto) {
-    this.flightService.createFlight(
+  async createFlight(@Body() createFlightDto: CreateFlightDto) {
+    await this.flightService.createFlight(
       createFlightDto.id,
       createFlightDto.departurePoint,
       createFlightDto.destination,
@@ -22,26 +22,26 @@ export class FlightController {
   }
 
   @Get()
-  getAllFlights() {
-    const flights = this.flightService.getAllFlights();
+  async getAllFlights() {
+    const flights = await this.flightService.getAllFlights();
     return { flights };
   }
 
   @Get('impeded')
-  getImpededFlights() {
-    const flights = this.flightService.getImpededFlights();
+  async getImpededFlights() {
+    const flights = await this.flightService.getImpededFlights();
     return { flights };
   }
 
   @Get('redirected')
-  getRedirectedFlights() {
-    const flights = this.flightService.getRedirectedFlights();
+  async getRedirectedFlights() {
+    const flights = await this.flightService.getRedirectedFlights();
     return { flights };
   }
 
   @Get('active')
-  getActiveFlights() {
-    const flights = this.flightService.getActiveFlights();
+  async getActiveFlights() {
+    const flights = await this.flightService.getActiveFlights();
     return { flights };
   }
 }

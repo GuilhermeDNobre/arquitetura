@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { EventBusService } from '../event-bus/event-bus.service';
 import { AirportCreated } from '../events/events';
+import { PrismaService } from '../prisma/prisma.service';
 
 export interface Airport {
   code: string;
@@ -16,33 +17,34 @@ export interface Airport {
 
 @Injectable()
 export class AirportService {
-  private airports: Map<string, Airport> = new Map();
+  constructor(
+    private readonly eventBus: EventBusService,
+    private readonly prisma: PrismaService,
+  ) { }
 
-  constructor(private readonly eventBus: EventBusService) {}
-
-  createAirport(
+  async createAirport(
     code: string,
     name: string,
     city: string,
     country: string,
     latitude?: number,
     longitude?: number,
-  ): Airport {
-    if (this.airports.has(code)) {
+  ): Promise<any> {
+    const existing = await this.prisma.airport.findUnique({ where: { code } });
+    if (existing) {
       throw new Error(`Airport with code ${code} already exists`);
     }
 
-    const airport: Airport = {
-      code,
-      name,
-      city,
-      country,
-      latitude,
-      longitude,
-      flights: [],
-    };
-
-    this.airports.set(code, airport);
+    const airport = await this.prisma.airport.create({
+      data: {
+        code,
+        name,
+        city,
+        country,
+        latitude,
+        longitude,
+      },
+    });
 
     const event = new AirportCreated(code, name, city, country, latitude, longitude);
     this.eventBus.publish(event);
@@ -50,25 +52,40 @@ export class AirportService {
     return airport;
   }
 
-  getAllAirports(): Airport[] {
-    return Array.from(this.airports.values());
+  async getAllAirports(): Promise<any[]> {
+    return this.prisma.airport.findMany({
+      include: {
+        flightsDeparture: true,
+        flightsArrival: true,
+      },
+    });
   }
 
-  getAirportByCode(code: string): Airport | undefined {
-    return this.airports.get(code);
+  async getAirportByCode(code: string): Promise<any | null> {
+    return this.prisma.airport.findUnique({
+      where: { code },
+      include: {
+        flightsDeparture: true,
+        flightsArrival: true,
+      },
+    });
   }
 
-  addFlightToAirport(airportCode: string, flight: any): void {
-    const airport = this.airports.get(airportCode);
-    if (!airport) {
-      throw new Error(`Airport with code ${airportCode} not found`);
-    }
-
-    airport.flights.push(flight);
+  async addFlightToAirport(airportCode: string, flight: any): Promise<void> {
+    // With Prisma and relations, we don't need to manually add flights to an array
+    // The relationship is handled by foreign keys.
   }
 
-  getFlightsByAirport(airportCode: string): any[] {
-    const airport = this.airports.get(airportCode);
-    return airport ? airport.flights : [];
+  async getFlightsByAirport(airportCode: string): Promise<any[]> {
+    const airport = await this.prisma.airport.findUnique({
+      where: { code: airportCode },
+      include: {
+        flightsDeparture: true,
+        flightsArrival: true,
+      },
+    });
+
+    if (!airport) return [];
+    return [...airport.flightsDeparture, ...airport.flightsArrival];
   }
 }
