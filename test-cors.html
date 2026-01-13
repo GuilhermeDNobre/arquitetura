@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste CORS e SSE - Logística Aeroportuária</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { border-color: #28a745; background: #d4edda; }
+        .error { border-color: #dc3545; background: #f8d7da; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; max-height: 200px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste CORS e SSE - Logística Aeroportuária</h1>
+
+    <div class="test">
+        <h2>Teste CORS - GET /airports</h2>
+        <button onclick="testCORS()">Testar CORS</button>
+        <div id="cors-result"></div>
+    </div>
+
+    <div class="test">
+        <h2>Teste SSE - /events/sse</h2>
+        <button onclick="testSSE()">Testar SSE</button>
+        <button onclick="stopSSE()">Parar SSE</button>
+        <div id="sse-status">Desconectado</div>
+        <div id="sse-events"></div>
+    </div>
+
+    <script>
+        // Teste CORS
+        async function testCORS() {
+            const resultDiv = document.getElementById('cors-result');
+            try {
+                const response = await fetch('http://localhost:3000/airports');
+                const data = await response.json();
+
+                resultDiv.className = 'success';
+                resultDiv.innerHTML = `
+                    <h3>✅ CORS funcionando!</h3>
+                    <p>Status: ${response.status}</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultDiv.className = 'error';
+                resultDiv.innerHTML = `
+                    <h3>❌ Erro CORS</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        }
+
+        // Teste SSE
+        let eventSource = null;
+
+        function testSSE() {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            const statusDiv = document.getElementById('sse-status');
+            const eventsDiv = document.getElementById('sse-events');
+
+            eventSource = new EventSource('http://localhost:3000/events/sse');
+
+            eventSource.onopen = function() {
+                statusDiv.innerHTML = '<span style="color: green;">🟢 Conectado ao SSE</span>';
+            };
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const eventData = JSON.parse(event.data);
+                    const eventDiv = document.createElement('div');
+                    eventDiv.style.cssText = 'padding: 5px; margin: 5px 0; border-left: 3px solid #007bff; background: #f8f9fa;';
+                    eventDiv.innerHTML = `
+                        <strong>${new Date().toLocaleTimeString()}</strong> -
+                        <span style="color: #007bff;">${eventData.type}</span><br>
+                        <pre style="margin: 5px 0; font-size: 11px;">${JSON.stringify(eventData.data, null, 2)}</pre>
+                    `;
+                    eventsDiv.insertBefore(eventDiv, eventsDiv.firstChild);
+                } catch (error) {
+                    console.error('Erro ao processar evento SSE:', error);
+                }
+            };
+
+            eventSource.onerror = function(error) {
+                statusDiv.innerHTML = '<span style="color: red;">🔴 Erro na conexão SSE</span>';
+                console.error('Erro SSE:', error);
+            };
+        }
+
+        function stopSSE() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+                document.getElementById('sse-status').innerHTML = 'Desconectado';
+            }
+        }
+
+        // Teste automático ao carregar
+        window.onload = function() {
+            setTimeout(testCORS, 1000);
+        };
+    </script>
+</body>
+</html>

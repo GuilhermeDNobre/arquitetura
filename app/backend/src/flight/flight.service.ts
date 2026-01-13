@@ -138,4 +138,25 @@ export class FlightService {
     // Retornar o primeiro aeroporto disponível (lógica pode ser melhorada)
     return availableAirports.length > 0 ? availableAirports[0] : null;
   }
+
+  getAllFlights(): any[] {
+    return [...this.flights];
+  }
+
+  getImpededFlights(): any[] {
+    return this.flights.filter(flight => flight.impeded);
+  }
+
+  getRedirectedFlights(): any[] {
+    return this.flights.filter(flight => flight.redirected);
+  }
+
+  getActiveFlights(): any[] {
+    const now = new Date();
+    return this.flights.filter(flight => {
+      const departureTime = new Date(flight.departureTime);
+      const arrivalTime = new Date(flight.arrivalTime);
+      return now >= departureTime && now <= arrivalTime;
+    });
+  }
 }

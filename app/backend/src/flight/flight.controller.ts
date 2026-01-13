@@ -1,6 +1,6 @@
 // src/flight/flight.controller.ts
 
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get } from '@nestjs/common';
 import { FlightService } from './flight.service';
 import { CreateFlightDto } from './create-flight.dto';
 
@@ -19,5 +19,29 @@ export class FlightController {
       createFlightDto.company,
     );
     return { message: 'Flight created successfully' };
+  }
+
+  @Get()
+  getAllFlights() {
+    const flights = this.flightService.getAllFlights();
+    return { flights };
+  }
+
+  @Get('impeded')
+  getImpededFlights() {
+    const flights = this.flightService.getImpededFlights();
+    return { flights };
+  }
+
+  @Get('redirected')
+  getRedirectedFlights() {
+    const flights = this.flightService.getRedirectedFlights();
+    return { flights };
+  }
+
+  @Get('active')
+  getActiveFlights() {
+    const flights = this.flightService.getActiveFlights();
+    return { flights };
   }
 }

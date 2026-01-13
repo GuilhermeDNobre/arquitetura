@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste SSE - Logística Aeroportuária</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .event { padding: 10px; margin: 5px 0; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .notification { border-left-color: #ffc107; }
+        .flight { border-left-color: #28a745; }
+        .error { border-left-color: #dc3545; }
+        #status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste de Server-Sent Events (SSE)</h1>
+    <div id="status" class="disconnected">Desconectado</div>
+
+    <h2>Eventos Recebidos:</h2>
+    <div id="events"></div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const eventsDiv = document.getElementById('events');
+
+        function addEvent(type, data, cssClass = '') {
+            const eventDiv = document.createElement('div');
+            eventDiv.className = `event ${cssClass}`;
+            eventDiv.innerHTML = `
+                <strong>${new Date().toLocaleTimeString()}</strong> -
+                <span style="color: #007bff;">${type}</span><br>
+                <pre style="margin: 5px 0; font-size: 12px;">${JSON.stringify(data, null, 2)}</pre>
+            `;
+            eventsDiv.insertBefore(eventDiv, eventsDiv.firstChild);
+        }
+
+        function connectSSE() {
+            const eventSource = new EventSource('http://localhost:3000/events/sse');
+
+            eventSource.onopen = function() {
+                statusDiv.textContent = '🟢 Conectado ao SSE';
+                statusDiv.className = 'connected';
+                addEvent('Sistema', { message: 'Conexão SSE estabelecida' });
+            };
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const eventData = JSON.parse(event.data);
+                    let cssClass = '';
+
+                    switch(eventData.type) {
+                        case 'notification':
+                            cssClass = 'notification';
+                            break;
+                        case 'flight-created':
+                        case 'flight-impeded':
+                        case 'flight-redirected':
+                            cssClass = 'flight';
+                            break;
+                    }
+
+                    addEvent(eventData.type, eventData.data, cssClass);
+                } catch (error) {
+                    addEvent('Erro', { message: 'Erro ao processar evento', error: error.message }, 'error');
+                }
+            };
+
+            eventSource.onerror = function(error) {
+                statusDiv.textContent = '🔴 Erro na conexão SSE - Tentando reconectar...';
+                statusDiv.className = 'disconnected';
+                addEvent('Erro', { message: 'Erro na conexão SSE', error: error.message }, 'error');
+
+                // Tentar reconectar em 5 segundos
+                setTimeout(() => {
+                    connectSSE();
+                }, 5000);
+            };
+
+            return eventSource;
+        }
+
+        // Iniciar conexão
+        connectSSE();
+
+        // Adicionar alguns eventos de teste
+        setTimeout(() => {
+            addEvent('Teste', { message: 'Página carregada e SSE iniciado' });
+        }, 1000);
+    </script>
+</body>
+</html>
